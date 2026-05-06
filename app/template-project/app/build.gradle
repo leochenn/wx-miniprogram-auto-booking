@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    compileSdk 30
+//    namespace 'com.example.namespace'
+    configurations {
+        //排除 prism4j 里的
+        implementation.exclude group: 'org.jetbrains' , module:'annotations-java5'
+    }
+
+    defaultConfig {
+        applicationId "com.leo.myapplication"
+        minSdk 21
+        targetSdk 30
+        versionCode 1
+        versionName "1.0"
+        resConfigs 'en', 'zh-rCN'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+//        debug{
+//            minifyEnabled true
+//        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: '*.jar')
+    implementation fileTree(dir: 'libs', include: '*.aar')
+}

@@ -1,0 +1,1478 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>南京预约模拟</title>
+    <style>
+        :root {
+            --u: calc(100vw / 970);
+            --brown: #ad8372;
+            --brown-dark: #9a7567;
+            --text: #303033;
+            --muted: #8f8f92;
+            --line: #cbb894;
+            --page: #f7f7f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+            background: var(--page);
+            color: var(--text);
+            font-family: Arial, "Microsoft YaHei", sans-serif;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-size: calc(26 * var(--u));
+        }
+
+        .shell {
+            width: 100vw;
+            min-height: 100vh;
+            background: var(--page);
+        }
+
+        .fake-status {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            z-index: 30;
+            height: calc(95 * var(--u));
+            background: var(--brown);
+            color: #fff;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0 calc(52 * var(--u)) calc(17 * var(--u));
+            font-size: calc(35 * var(--u));
+            line-height: 1;
+        }
+
+        .status-icons {
+            display: flex;
+            align-items: center;
+            gap: calc(13 * var(--u));
+            font-size: calc(28 * var(--u));
+        }
+
+        .status-dot,
+        .status-battery,
+        .status-bag,
+        .status-img {
+            display: inline-block;
+            width: calc(24 * var(--u));
+            height: calc(24 * var(--u));
+            border: calc(4 * var(--u)) solid rgba(255, 255, 255, 0.92);
+            border-radius: calc(5 * var(--u));
+        }
+
+        .status-bag {
+            border-radius: calc(4 * var(--u));
+            position: relative;
+        }
+
+        .status-bag::before {
+            content: "";
+            position: absolute;
+            width: calc(14 * var(--u));
+            height: calc(7 * var(--u));
+            border: calc(3 * var(--u)) solid #fff;
+            border-bottom: none;
+            border-radius: calc(8 * var(--u)) calc(8 * var(--u)) 0 0;
+            left: calc(1 * var(--u));
+            top: calc(-11 * var(--u));
+        }
+
+        .status-bars {
+            letter-spacing: 0;
+            font-size: calc(25 * var(--u));
+        }
+
+        .debug-strip {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: calc(95 * var(--u));
+            z-index: 30;
+            height: calc(30 * var(--u));
+            background: #d7c4ba;
+            color: #111;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+            font-size: calc(24 * var(--u));
+            line-height: calc(30 * var(--u));
+        }
+
+        .debug-strip span {
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .debug-strip .hot {
+            background: #ff3030;
+        }
+
+        .mini-nav {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: calc(125 * var(--u));
+            z-index: 30;
+            height: calc(90 * var(--u));
+            background: var(--brown);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(36 * var(--u));
+            font-weight: 500;
+        }
+
+        .nav-left {
+            position: absolute;
+            left: calc(15 * var(--u));
+            top: calc(8 * var(--u));
+            width: calc(228 * var(--u));
+            height: calc(68 * var(--u));
+            border: calc(2 * var(--u)) solid rgba(255, 255, 255, 0.28);
+            border-radius: calc(40 * var(--u));
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .back-icon {
+            width: calc(28 * var(--u));
+            height: calc(28 * var(--u));
+            border-left: calc(5 * var(--u)) solid #fff;
+            border-bottom: calc(5 * var(--u)) solid #fff;
+            transform: rotate(45deg);
+        }
+
+        .home-icon {
+            width: calc(38 * var(--u));
+            height: calc(32 * var(--u));
+            border: calc(5 * var(--u)) solid #fff;
+            border-top: none;
+            position: relative;
+        }
+
+        .home-icon::before {
+            content: "";
+            position: absolute;
+            width: calc(27 * var(--u));
+            height: calc(27 * var(--u));
+            border-left: calc(5 * var(--u)) solid #fff;
+            border-top: calc(5 * var(--u)) solid #fff;
+            transform: rotate(45deg);
+            top: calc(-13 * var(--u));
+            left: calc(0 * var(--u));
+        }
+
+        .nav-sep {
+            width: 1px;
+            height: calc(44 * var(--u));
+            background: rgba(255, 255, 255, 0.32);
+        }
+
+        .nav-right {
+            position: absolute;
+            right: calc(22 * var(--u));
+            top: calc(8 * var(--u));
+            width: calc(226 * var(--u));
+            height: calc(68 * var(--u));
+            border-radius: calc(40 * var(--u));
+            background: rgba(96, 65, 50, 0.38);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            font-size: calc(40 * var(--u));
+        }
+
+        .nav-circle {
+            width: calc(42 * var(--u));
+            height: calc(42 * var(--u));
+            border: calc(7 * var(--u)) solid #fff;
+            border-radius: 50%;
+        }
+
+        .page {
+            display: none;
+            padding-top: calc(215 * var(--u));
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .home-page {
+            min-height: calc(1833 * var(--u));
+            background: #f8f8f8;
+            position: relative;
+            padding-top: calc(1 * var(--u));
+        }
+
+        .home-page::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: calc(480 * var(--u));
+            height: calc(230 * var(--u));
+            background: repeating-linear-gradient(135deg, rgba(187, 132, 112, 0.18) 0 calc(4 * var(--u)), transparent calc(4 * var(--u)) calc(17 * var(--u)));
+            opacity: 0.85;
+        }
+
+        .home-title {
+            position: relative;
+            margin: calc(154 * var(--u)) 0 0 calc(42 * var(--u));
+            font-size: calc(40 * var(--u));
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .entry-list {
+            margin: calc(250 * var(--u)) calc(40 * var(--u)) 0;
+        }
+
+        .entry-card {
+            height: calc(274 * var(--u));
+            margin-bottom: calc(40 * var(--u));
+            border-radius: calc(18 * var(--u));
+            background:
+                linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 25%),
+                var(--brown);
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .entry-card::before,
+        .entry-card::after {
+            content: "";
+            position: absolute;
+            width: calc(215 * var(--u));
+            height: calc(58 * var(--u));
+            opacity: 0.25;
+            background: repeating-linear-gradient(90deg, #fff 0 calc(16 * var(--u)), transparent calc(16 * var(--u)) calc(32 * var(--u)));
+        }
+
+        .entry-card::before {
+            left: calc(-12 * var(--u));
+            top: 0;
+        }
+
+        .entry-card::after {
+            right: 0;
+            bottom: 0;
+        }
+
+        .entry-name {
+            font-size: calc(38 * var(--u));
+            line-height: 1.2;
+            margin-bottom: calc(28 * var(--u));
+        }
+
+        .entry-desc {
+            max-width: calc(780 * var(--u));
+            text-align: center;
+            font-size: calc(27 * var(--u));
+            line-height: 1.55;
+            padding: 0 calc(15 * var(--u));
+        }
+
+        .detail-page {
+            min-height: calc(2450 * var(--u));
+            padding-bottom: calc(250 * var(--u));
+            background: var(--page);
+        }
+
+        .detail-hero {
+            height: calc(180 * var(--u));
+            padding: calc(70 * var(--u)) calc(40 * var(--u)) 0;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.9) 0 calc(18 * var(--u)), transparent calc(20 * var(--u))),
+                radial-gradient(circle at 55% 25%, rgba(255, 255, 255, 0.9) 0 calc(26 * var(--u)), transparent calc(28 * var(--u))),
+                linear-gradient(180deg, #f4f4f4, #eeeeee);
+        }
+
+        .exhibit-title {
+            font-size: calc(42 * var(--u));
+            font-weight: 500;
+            padding-bottom: calc(20 * var(--u));
+            border-bottom: calc(4 * var(--u)) solid #d1c0b7;
+            width: calc(580 * var(--u));
+        }
+
+        .panel {
+            margin: 0 calc(40 * var(--u)) calc(40 * var(--u));
+            background: #fff;
+            border-radius: calc(15 * var(--u));
+        }
+
+        .calendar-panel {
+            height: calc(795 * var(--u));
+            margin-bottom: 0;
+            padding: calc(44 * var(--u)) calc(30 * var(--u)) calc(30 * var(--u));
+            border-radius: calc(15 * var(--u)) calc(15 * var(--u)) 0 0;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: calc(10 * var(--u));
+            font-size: calc(36 * var(--u));
+            font-weight: 500;
+        }
+
+        .section-icon {
+            width: calc(32 * var(--u));
+            height: calc(32 * var(--u));
+            border-radius: calc(5 * var(--u));
+            background: #c7c7c9;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(22 * var(--u));
+            font-weight: 700;
+        }
+
+        .month {
+            margin-left: auto;
+            font-size: calc(36 * var(--u));
+            font-weight: 400;
+        }
+
+        .week-row,
+        .date-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .week-row {
+            margin-top: calc(48 * var(--u));
+            color: #45653f;
+            font-size: calc(34 * var(--u));
+            text-align: center;
+        }
+
+        .date-grid {
+            margin-top: calc(22 * var(--u));
+            row-gap: calc(24 * var(--u));
+            text-align: center;
+        }
+
+        .day {
+            height: calc(130 * var(--u));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: calc(2 * var(--u)) solid transparent;
+        }
+
+        .day .num {
+            font-size: calc(34 * var(--u));
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .day .state {
+            margin-top: calc(22 * var(--u));
+            font-size: calc(26 * var(--u));
+            line-height: 1;
+        }
+
+        .day.disabled {
+            color: #8e8e90;
+        }
+
+        .day.available .state,
+        .day.selected .state {
+            color: var(--brown);
+        }
+
+        .day.waiting .state {
+            color: #333;
+        }
+
+        .day.selected {
+            background: var(--brown);
+            color: #fff;
+            border-radius: 0;
+        }
+
+        .day.selected .state {
+            color: #fff;
+        }
+
+        .tip-box {
+            margin: calc(36 * var(--u)) 0 0;
+            background: #fafafa;
+            border-radius: calc(8 * var(--u));
+            padding: calc(22 * var(--u)) calc(25 * var(--u));
+            color: var(--brown);
+            font-size: calc(29 * var(--u));
+            line-height: 1.72;
+        }
+
+        .tip-line {
+            display: flex;
+            gap: calc(16 * var(--u));
+        }
+
+        .info-dot {
+            flex: 0 0 calc(30 * var(--u));
+            width: calc(30 * var(--u));
+            height: calc(30 * var(--u));
+            margin-top: calc(9 * var(--u));
+            border-radius: 50%;
+            background: var(--brown);
+            color: #fff;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(20 * var(--u));
+            font-weight: 700;
+        }
+
+        .divider {
+            height: 1px;
+            margin: 0 calc(58 * var(--u));
+            background: #dfdfdf;
+        }
+
+        .period-panel {
+            height: calc(250 * var(--u));
+            margin-top: 0;
+            margin-bottom: calc(74 * var(--u));
+            padding: calc(42 * var(--u)) calc(20 * var(--u)) 0;
+            border-radius: 0 0 calc(15 * var(--u)) calc(15 * var(--u));
+        }
+
+        .period-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: calc(28 * var(--u));
+            margin-top: calc(18 * var(--u));
+        }
+
+        .period {
+            height: calc(155 * var(--u));
+            background: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0 calc(24 * var(--u)) calc(24 * var(--u)) 0;
+            color: #333;
+            border: calc(3 * var(--u)) solid transparent;
+        }
+
+        .period .time {
+            font-size: calc(36 * var(--u));
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .period .period-state {
+            margin-top: calc(24 * var(--u));
+            color: var(--brown);
+            font-size: calc(28 * var(--u));
+        }
+
+        .period.full {
+            background: #d9dbdb;
+            color: #333;
+        }
+
+        .period.full .period-state {
+            color: #888;
+        }
+
+        .period.selected {
+            background: var(--brown);
+            color: #fff;
+        }
+
+        .period.selected .period-state {
+            color: #fff;
+        }
+
+        .visitor-panel {
+            padding: calc(45 * var(--u)) calc(16 * var(--u)) calc(25 * var(--u));
+        }
+
+        .visitor-panel .section-title {
+            margin: 0 calc(8 * var(--u)) calc(28 * var(--u));
+            font-size: calc(36 * var(--u));
+            font-weight: 700;
+        }
+
+        .limit {
+            color: var(--brown);
+            font-weight: 400;
+            margin-left: calc(8 * var(--u));
+        }
+
+        .minor-tip {
+            margin: 0 0 calc(18 * var(--u));
+            background: #fafafa;
+            color: #8d8d90;
+            border-radius: calc(8 * var(--u));
+            padding: calc(18 * var(--u)) calc(24 * var(--u));
+            font-size: calc(30 * var(--u));
+            display: flex;
+            align-items: center;
+            gap: calc(14 * var(--u));
+        }
+
+        .visitor-card {
+            height: calc(226 * var(--u));
+            border: calc(2 * var(--u)) solid var(--line);
+            border-radius: calc(14 * var(--u));
+            margin-bottom: calc(20 * var(--u));
+            display: grid;
+            grid-template-columns: calc(125 * var(--u)) 1fr;
+            align-items: center;
+            padding-right: calc(28 * var(--u));
+            background: #fff;
+        }
+
+        .check {
+            width: calc(55 * var(--u));
+            height: calc(55 * var(--u));
+            border: calc(3 * var(--u)) solid var(--brown);
+            border-radius: 50%;
+            margin-left: calc(45 * var(--u));
+            position: relative;
+        }
+
+        .visitor-card.selected .check {
+            background: var(--brown);
+        }
+
+        .visitor-card.selected .check::after {
+            content: "";
+            position: absolute;
+            width: calc(25 * var(--u));
+            height: calc(13 * var(--u));
+            border-left: calc(5 * var(--u)) solid #fff;
+            border-bottom: calc(5 * var(--u)) solid #fff;
+            transform: rotate(-45deg);
+            left: calc(12 * var(--u));
+            top: calc(15 * var(--u));
+        }
+
+        .visitor-name {
+            font-size: calc(34 * var(--u));
+            margin-bottom: calc(25 * var(--u));
+        }
+
+        .visitor-line {
+            color: #8f8f92;
+            font-size: calc(28 * var(--u));
+            line-height: 1.7;
+        }
+
+        .edit-visitor {
+            height: calc(95 * var(--u));
+            border: calc(2 * var(--u)) dashed #dab8a7;
+            border-radius: calc(14 * var(--u));
+            background: #fff9f6;
+            color: var(--brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(31 * var(--u));
+            margin-top: calc(8 * var(--u));
+        }
+
+        .notice-panel {
+            margin-top: calc(40 * var(--u));
+            padding: calc(45 * var(--u)) calc(22 * var(--u));
+            border: calc(2 * var(--u)) solid #dedede;
+            border-radius: calc(14 * var(--u));
+            background: #fff;
+            font-size: calc(31 * var(--u));
+            line-height: 1.58;
+        }
+
+        .notice-title {
+            font-size: calc(40 * var(--u));
+            font-weight: 700;
+            margin-bottom: calc(25 * var(--u));
+        }
+
+        .notice-panel .brown {
+            color: var(--brown);
+        }
+
+        .bottom-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: calc(218 * var(--u));
+            padding-top: calc(26 * var(--u));
+            background: #fff;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .confirm {
+            width: calc(890 * var(--u));
+            height: calc(112 * var(--u));
+            border: none;
+            border-radius: calc(48 * var(--u));
+            background: #d9dbdb;
+            color: #fff;
+            font-size: calc(36 * var(--u));
+        }
+
+        .confirm.active {
+            background: var(--brown);
+        }
+
+        .captcha-mask {
+            position: fixed;
+            inset: 0;
+            z-index: 45;
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.48);
+        }
+
+        .captcha-mask.show {
+            display: flex;
+        }
+
+        .captcha-dialog {
+            position: relative;
+            width: calc(718 * var(--u));
+            margin-top: calc(440 * var(--u));
+            padding: 0 calc(42 * var(--u)) calc(34 * var(--u));
+            border-radius: calc(28 * var(--u));
+            background: #fff;
+        }
+
+        .captcha-mask.slider-mode .captcha-dialog {
+            margin-top: calc(485 * var(--u));
+            padding: 0 0 calc(34 * var(--u));
+            overflow: hidden;
+        }
+
+        .captcha-title {
+            height: calc(110 * var(--u));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #252529;
+            font-size: calc(43 * var(--u));
+            font-weight: 500;
+            line-height: 1;
+        }
+
+        .captcha-close {
+            position: absolute;
+            right: calc(22 * var(--u));
+            top: calc(28 * var(--u));
+            width: calc(44 * var(--u));
+            height: calc(44 * var(--u));
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+
+        .captcha-close::before,
+        .captcha-close::after {
+            content: "";
+            position: absolute;
+            left: calc(19 * var(--u));
+            top: calc(-2 * var(--u));
+            width: calc(6 * var(--u));
+            height: calc(49 * var(--u));
+            border-radius: calc(5 * var(--u));
+            background: #000;
+        }
+
+        .captcha-close::before {
+            transform: rotate(45deg);
+        }
+
+        .captcha-close::after {
+            transform: rotate(-45deg);
+        }
+
+        .captcha-panel {
+            display: none;
+        }
+
+        .captcha-mask.math-mode .captcha-math-panel,
+        .captcha-mask.slider-mode .captcha-slider-panel {
+            display: block;
+        }
+
+        .captcha-canvas {
+            display: block;
+            width: 100%;
+            aspect-ratio: 760 / 694;
+            background: #eee;
+        }
+
+        .captcha-input {
+            display: block;
+            width: 100%;
+            height: calc(90 * var(--u));
+            margin-top: calc(104 * var(--u));
+            border: none;
+            border-radius: 0;
+            background: #fafafa;
+            color: #303033;
+            font-size: calc(33 * var(--u));
+            line-height: calc(90 * var(--u));
+            padding: 0 calc(26 * var(--u));
+            outline: none;
+        }
+
+        .captcha-input::placeholder {
+            color: #b9b9bd;
+            opacity: 1;
+        }
+
+        .captcha-submit {
+            display: block;
+            width: calc(547 * var(--u));
+            height: calc(88 * var(--u));
+            margin: calc(126 * var(--u)) auto 0;
+            border: none;
+            border-radius: calc(48 * var(--u));
+            background: var(--brown);
+            color: #fff;
+            font-size: calc(33 * var(--u));
+            line-height: calc(88 * var(--u));
+        }
+
+        .captcha-mask.slider-mode .captcha-submit {
+            width: calc(632 * var(--u));
+            height: calc(102 * var(--u));
+            margin-top: calc(129 * var(--u));
+            border-radius: calc(54 * var(--u));
+            font-size: calc(34 * var(--u));
+            line-height: calc(102 * var(--u));
+        }
+
+        .slider-captcha-canvas {
+            display: block;
+            width: 100%;
+            aspect-ratio: 760 / 612;
+            background: #1680dc;
+        }
+
+        .slider-track {
+            position: relative;
+            width: 100%;
+            height: calc(100 * var(--u));
+            border-top: calc(4 * var(--u)) solid #dedede;
+            border-bottom: calc(3 * var(--u)) solid #e6e6e6;
+            background: #fafafa;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .slider-handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: calc(102 * var(--u));
+            height: 100%;
+            border: calc(2 * var(--u)) solid #dddddd;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translateX(0);
+            z-index: 2;
+            touch-action: none;
+        }
+
+        .slider-arrow {
+            position: relative;
+            width: calc(54 * var(--u));
+            height: calc(24 * var(--u));
+            background: #242428;
+        }
+
+        .slider-arrow::after {
+            content: "";
+            position: absolute;
+            right: calc(-30 * var(--u));
+            top: calc(-18 * var(--u));
+            width: 0;
+            height: 0;
+            border-top: calc(30 * var(--u)) solid transparent;
+            border-bottom: calc(30 * var(--u)) solid transparent;
+            border-left: calc(30 * var(--u)) solid #242428;
+        }
+
+        .slider-tip {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #111;
+            font-size: calc(34 * var(--u));
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(190 * var(--u));
+            transform: translateX(-50%);
+            padding: calc(22 * var(--u)) calc(36 * var(--u));
+            border-radius: calc(12 * var(--u));
+            background: rgba(0, 0, 0, 0.78);
+            color: #fff;
+            font-size: calc(30 * var(--u));
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 60;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="fake-status">
+        <div id="clock">16:47</div>
+        <div class="status-icons">
+            <span class="status-img"></span>
+            <span class="status-dot"></span>
+            <span class="status-bag"></span>
+            <span style="width:calc(300 * var(--u))"></span>
+            <span class="status-bag"></span>
+            <span class="status-bars">≋</span>
+            <span class="status-bars">▂▅▇</span>
+            <span class="status-battery"></span>
+        </div>
+    </div>
+    <div class="debug-strip">
+        <span>P: 0 / 1</span><span>dX: -0.4</span><span>dY: 2.2</span><span>Xv: -0.060</span><span>Yv: 0.111</span><span class="hot">Prs: 1.0</span><span>Size: 0.03</span>
+    </div>
+    <div class="mini-nav">
+        <div class="nav-left">
+            <span class="back-icon"></span><span class="nav-sep"></span><span class="home-icon"></span>
+        </div>
+        <div id="navTitle">参观预约</div>
+        <div class="nav-right"><span>•••</span><span class="nav-sep"></span><span class="nav-circle"></span></div>
+    </div>
+
+    <main id="homePage" class="page active">
+        <section class="home-page">
+            <h1 class="home-title">南京大屠杀史实展</h1>
+            <div class="entry-list">
+                <div class="entry-card" id="normalBookingEntry">
+                    <div class="entry-name">普通预约</div>
+                    <div class="entry-desc">14周岁（含）以上观众</div>
+                </div>
+                <div class="entry-card">
+                    <div class="entry-name">亲子预约</div>
+                    <div class="entry-desc">成年人携14周岁（不含）以下未成年人</div>
+                </div>
+                <div class="entry-card">
+                    <div class="entry-name">优待预约</div>
+                    <div class="entry-desc">65周岁（含）以上老年人，残疾人，现役军人，退役军人，烈士遗属、因公牺牲军人遗属、病故军人遗属，消防救援人员，献血荣誉证持有者，医务人员</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <main id="detailPage" class="page">
+        <section class="detail-page">
+            <div class="detail-hero">
+                <div class="exhibit-title">南京大屠杀史实展</div>
+            </div>
+
+            <section class="panel calendar-panel">
+                <div class="section-title"><span class="section-icon">✓</span><span>参观日期</span><span class="month">2026年04月</span></div>
+                <div class="week-row">
+                    <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                </div>
+                <div class="date-grid">
+                    <div class="day disabled"><div class="num">26</div><div class="state">-</div></div>
+                    <div class="day disabled"><div class="num">27</div><div class="state">-</div></div>
+                    <div class="day disabled"><div class="num">28</div><div class="state">-</div></div>
+                    <div class="day"><div class="num">29</div><div class="state">不可约</div></div>
+                    <div class="day selected" data-date="0430"><div class="num">30</div><div class="state">可预约</div></div>
+                    <div class="day waiting"><div class="num">01</div><div class="state">待放票</div></div>
+                    <div class="day waiting"><div class="num">02</div><div class="state">待放票</div></div>
+                    <div class="day waiting"><div class="num">03</div><div class="state">待放票</div></div>
+                    <div class="day waiting"><div class="num">04</div><div class="state">待放票</div></div>
+                    <div class="day available" data-date="0505"><div class="num">05</div><div class="state">可预约</div></div>
+                    <div class="day available" data-date="0506"><div class="num">06</div><div class="state">可预约</div></div>
+                    <div class="day disabled"><div class="num">07</div><div class="state">-</div></div>
+                    <div class="day disabled"><div class="num">08</div><div class="state">-</div></div>
+                    <div class="day disabled"><div class="num">09</div><div class="state">-</div></div>
+                </div>
+                <div class="tip-box">
+                    <div class="tip-line"><span class="info-dot">i</span><span>“待放票” 表示预约当日放票名额已约满，次日8:00继续放票。“已约满” 表示参观当日所有名额均已约满。</span></div>
+                    <div class="tip-line"><span class="info-dot">i</span><span>22:00-次日8:00为系统维护时间，暂不可约。</span></div>
+                </div>
+            </section>
+
+            <div class="divider"></div>
+
+            <section class="panel period-panel">
+                <div class="section-title"><span class="section-icon">◷</span><span>选择时段</span></div>
+                <div class="period-options">
+                    <div class="period" data-period="morning"><div class="time">08:30-12:30</div><div class="period-state">· 可预约</div></div>
+                    <div class="period full" data-period="afternoon"><div class="time">12:30-16:30</div><div class="period-state">· 已约满</div></div>
+                </div>
+            </section>
+
+            <section class="panel visitor-panel">
+                <div class="section-title"><span class="section-icon">▦</span><span>观众信息</span><span class="limit">（最多5人）</span></div>
+                <div class="minor-tip"><span class="info-dot">i</span><span>14周岁（不含）以下未成年人请前往 “亲子预约”。</span></div>
+                <div class="visitor-card" data-visitor="1">
+                    <div class="check"></div><div><div class="visitor-name">王尚岩</div><div class="visitor-line">证件类型：居民身份证</div><div class="visitor-line">证件号码：3590**********12</div></div>
+                </div>
+                <div class="visitor-card" data-visitor="2">
+                    <div class="check"></div><div><div class="visitor-name">杨明辉</div><div class="visitor-line">证件类型：居民身份证</div><div class="visitor-line">证件号码：1523**********73</div></div>
+                </div>
+                <div class="visitor-card" data-visitor="3">
+                    <div class="check"></div><div><div class="visitor-name">刘珊</div><div class="visitor-line">证件类型：居民身份证</div><div class="visitor-line">证件号码：2321**********06</div></div>
+                </div>
+                <div class="visitor-card" data-visitor="4">
+                    <div class="check"></div><div><div class="visitor-name">高雪</div><div class="visitor-line">证件类型：居民身份证</div><div class="visitor-line">证件号码：2102**********20</div></div>
+                </div>
+                <div class="visitor-card" data-visitor="5">
+                    <div class="check"></div><div><div class="visitor-name">刘兴体</div><div class="visitor-line">证件类型：居民身份证</div><div class="visitor-line">证件号码：5102**********10</div></div>
+                </div>
+                <div class="edit-visitor">新增/删除/编辑观众</div>
+            </section>
+
+            <section class="panel notice-panel">
+                <div class="notice-title">重要提示</div>
+                <div><span class="brown">1.每日放票时间为8:00，提前7天连续放票，参观当日不放票。</span></div>
+                <div>2.上午时段8:30-12:30可延迟至13:00入馆，下午时段12:30-16:30可提前至12:00入馆。</div>
+                <div>3.如无法按时入馆，须通过微信公众号 “纪念馆预约-我的-我的预约” 取消预约。每人每天不可取消超过1次，每月不可取消超过4次。</div>
+                <div>4.预约时段未到馆且未取消视为爽约，爽约3次后，该观众将限制预约90天。</div>
+            </section>
+        </section>
+        <div class="bottom-bar"><button class="confirm" id="confirmButton">确认预约</button></div>
+    </main>
+
+    <div class="captcha-mask math-mode" id="captchaMask">
+        <div class="captcha-dialog">
+            <button class="captcha-close" id="captchaClose" aria-label="关闭验证码"></button>
+            <div class="captcha-title">验证码</div>
+            <div class="captcha-panel captcha-math-panel" id="mathCaptchaPanel">
+                <canvas class="captcha-canvas" id="captchaCanvas" width="760" height="694"></canvas>
+                <input class="captcha-input" id="captchaInput" type="text" inputmode="numeric" placeholder="请输入上图计算结果">
+            </div>
+            <div class="captcha-panel captcha-slider-panel" id="sliderCaptchaPanel">
+                <canvas class="slider-captcha-canvas" id="sliderCaptchaCanvas" width="760" height="612"></canvas>
+                <div class="slider-track" id="sliderTrack">
+                    <div class="slider-tip">向右滑动完成验证</div>
+                    <div class="slider-handle" id="sliderHandle"><span class="slider-arrow"></span></div>
+                </div>
+            </div>
+            <button class="captcha-submit" id="captchaSubmit">确定</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">模拟预约已提交</div>
+</div>
+
+<script>
+    (function () {
+        var navTitle = document.getElementById("navTitle");
+        var homePage = document.getElementById("homePage");
+        var detailPage = document.getElementById("detailPage");
+        var confirmButton = document.getElementById("confirmButton");
+        var toast = document.getElementById("toast");
+        var captchaMask = document.getElementById("captchaMask");
+        var captchaClose = document.getElementById("captchaClose");
+        var mathCaptchaPanel = document.getElementById("mathCaptchaPanel");
+        var sliderCaptchaPanel = document.getElementById("sliderCaptchaPanel");
+        var captchaCanvas = document.getElementById("captchaCanvas");
+        var sliderCaptchaCanvas = document.getElementById("sliderCaptchaCanvas");
+        var sliderTrack = document.getElementById("sliderTrack");
+        var sliderHandle = document.getElementById("sliderHandle");
+        var captchaInput = document.getElementById("captchaInput");
+        var captchaSubmit = document.getElementById("captchaSubmit");
+        var captchaMode = "math";
+        var captchaAnswer = "";
+        var sliderState = {
+            targetRatioX: 0.5,
+            handleLeft: 0,
+            dragging: false,
+            dragOffsetX: 0
+        };
+        var selectedDate = "0430";
+        var selectedPeriod = "";
+        var selectedVisitors = {};
+
+        function showDetail() {
+            homePage.classList.remove("active");
+            detailPage.classList.add("active");
+            navTitle.textContent = "普通预约";
+            window.scrollTo(0, 0);
+            updateConfirm();
+        }
+
+        function updateConfirm() {
+            var visitorCount = Object.keys(selectedVisitors).filter(function (key) {
+                return selectedVisitors[key];
+            }).length;
+            confirmButton.classList.toggle("active", !!selectedDate && !!selectedPeriod && visitorCount > 0);
+        }
+
+        function showToast(text) {
+            toast.textContent = text;
+            toast.classList.add("show");
+            window.setTimeout(function () {
+                toast.classList.remove("show");
+            }, 1800);
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function makeCaptchaQuestion() {
+            var op = ["+", "-", "×", "÷"][randomInt(0, 3)];
+            var a;
+            var b;
+            var answer;
+
+            if (op === "+") {
+                a = randomInt(1, 89);
+                b = randomInt(1, Math.min(99 - a, 99));
+                answer = a + b;
+            } else if (op === "-") {
+                a = randomInt(1, 99);
+                b = randomInt(0, a);
+                answer = a - b;
+            } else if (op === "×") {
+                a = randomInt(1, 12);
+                b = randomInt(1, Math.floor(99 / a));
+                answer = a * b;
+            } else {
+                b = randomInt(1, 12);
+                answer = randomInt(1, Math.floor(99 / b));
+                a = b * answer;
+            }
+
+            return {
+                text: String(a) + op + String(b) + "=?",
+                answer: String(answer)
+            };
+        }
+
+        function drawSpeckles(ctx, width, height, count, color, alpha) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+            for (var i = 0; i < count; i++) {
+                ctx.fillRect(randomInt(0, width), randomInt(0, height), randomInt(1, 3), randomInt(1, 3));
+            }
+            ctx.restore();
+        }
+
+        function drawGreenNoise(ctx, width, height) {
+            var image = ctx.createImageData(width, height);
+            for (var i = 0; i < image.data.length; i += 4) {
+                var noise = randomInt(-45, 45);
+                image.data[i] = 30 + noise;
+                image.data[i + 1] = 138 + noise + randomInt(-20, 25);
+                image.data[i + 2] = 122 + noise + randomInt(-25, 35);
+                image.data[i + 3] = 255;
+            }
+            ctx.putImageData(image, 0, 0);
+
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            for (var j = 0; j < 42; j++) {
+                ctx.strokeStyle = j % 2 ? "#9fd8cf" : "#1f6f58";
+                ctx.lineWidth = randomInt(2, 9);
+                ctx.beginPath();
+                ctx.moveTo(randomInt(-80, width), randomInt(0, height));
+                ctx.bezierCurveTo(randomInt(0, width), randomInt(0, height), randomInt(0, width), randomInt(0, height), randomInt(0, width + 80), randomInt(0, height));
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawBlockPrint(ctx, width, height) {
+            ctx.fillStyle = "#bebebe";
+            ctx.fillRect(0, 0, width, height);
+            drawSpeckles(ctx, width, height, 1300, "#111", 0.2);
+
+            ctx.save();
+            ctx.fillStyle = "#080808";
+            ctx.globalAlpha = 0.95;
+            var blocks = [
+                [70, 45, 330, 70], [430, 45, 255, 160], [62, 150, 130, 75], [230, 140, 142, 175],
+                [420, 235, 315, 90], [56, 360, 205, 85], [295, 360, 150, 95], [480, 360, 205, 85],
+                [80, 510, 280, 55], [410, 510, 275, 55], [185, 610, 360, 80]
+            ];
+            blocks.forEach(function (item) {
+                ctx.fillRect(item[0] + randomInt(-8, 8), item[1] + randomInt(-8, 8), item[2] + randomInt(-12, 12), item[3] + randomInt(-10, 10));
+            });
+            ctx.restore();
+
+            drawSpeckles(ctx, width, height, 900, "#fff", 0.72);
+            ctx.fillStyle = "rgba(120, 30, 25, 0.28)";
+            ctx.strokeStyle = "rgba(120, 30, 25, 0.42)";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(width - 132, height - 118, 78, 78);
+        }
+
+        function drawBlueVase(ctx, width, height) {
+            ctx.fillStyle = "#173f78";
+            ctx.fillRect(0, 0, width, height);
+            drawSpeckles(ctx, width, height, 550, "#ffffff", 0.22);
+
+            ctx.save();
+            ctx.fillStyle = "#e9e2d8";
+            ctx.strokeStyle = "#e9e2d8";
+            ctx.lineWidth = 8;
+
+            for (var i = 0; i < 10; i++) {
+                var angle = (Math.PI * 2 / 10) * i;
+                var cx = width / 2 + Math.cos(angle) * 96;
+                var cy = 218 + Math.sin(angle) * 42;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, 92, 34, angle, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.beginPath();
+            ctx.ellipse(width / 2, 230, 70, 45, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(width / 2 - 8, 260, 16, 130);
+            ctx.beginPath();
+            ctx.moveTo(width / 2 - 112, 380);
+            ctx.bezierCurveTo(width / 2 - 150, 520, width / 2 - 122, 650, width / 2 - 70, 686);
+            ctx.lineTo(width / 2 + 72, 686);
+            ctx.bezierCurveTo(width / 2 + 128, 646, width / 2 + 152, 520, width / 2 + 112, 380);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.globalAlpha = 0.26;
+            ctx.strokeStyle = "#cfd6e2";
+            ctx.lineWidth = 4;
+            for (var j = 0; j < 24; j++) {
+                ctx.beginPath();
+                ctx.moveTo(randomInt(10, width - 10), randomInt(10, height - 10));
+                ctx.lineTo(randomInt(10, width - 10), randomInt(10, height - 10));
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawMathCaptcha() {
+            var ctx = captchaCanvas.getContext("2d");
+            var width = captchaCanvas.width;
+            var height = captchaCanvas.height;
+            var question = makeCaptchaQuestion();
+            var style = randomInt(0, 2);
+            captchaAnswer = question.answer;
+
+            if (style === 0) {
+                drawGreenNoise(ctx, width, height);
+            } else if (style === 1) {
+                drawBlockPrint(ctx, width, height);
+            } else {
+                drawBlueVase(ctx, width, height);
+            }
+
+            ctx.save();
+            ctx.fillStyle = "#fff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "92px Arial, 'Microsoft YaHei', sans-serif";
+            ctx.fillText(question.text, width / 2, Math.round(height * 0.52));
+            ctx.restore();
+        }
+
+        function drawSliderBackground(ctx, width, height) {
+            var style = randomInt(0, 2);
+            if (style === 0) {
+                var sky = ctx.createLinearGradient(0, 0, 0, height);
+                sky.addColorStop(0, "#1c83df");
+                sky.addColorStop(0.72, "#2c9beb");
+                sky.addColorStop(1, "#f0f6fb");
+                ctx.fillStyle = sky;
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.save();
+                ctx.fillStyle = "#fffdf0";
+                ctx.translate(width * 0.53, height * 0.52);
+                ctx.rotate(-0.08);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 180, 58, 0, 0, Math.PI * 2);
+                ctx.ellipse(92, -42, 116, 36, -0.24, 0, Math.PI * 2);
+                ctx.ellipse(125, 32, 128, 40, 0.18, 0, Math.PI * 2);
+                ctx.ellipse(-120, 18, 90, 34, -0.05, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            } else if (style === 1) {
+                ctx.fillStyle = "#211614";
+                ctx.fillRect(0, 0, width, height);
+                drawSpeckles(ctx, width, height, 900, "#ffffff", 0.12);
+                var colors = ["#f6c52f", "#28a95a", "#ef8f92"];
+                for (var i = 0; i < 13; i++) {
+                    ctx.save();
+                    ctx.translate(randomInt(-80, width - 90), randomInt(80, height - 80));
+                    ctx.rotate(randomInt(-12, 12) * Math.PI / 180);
+                    ctx.fillStyle = colors[i % colors.length];
+                    var blockW = randomInt(125, 250);
+                    var blockH = randomInt(42, 92);
+                    ctx.fillRect(0, 0, blockW, blockH);
+                    ctx.strokeStyle = "rgba(0,0,0,0.32)";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(0, 0, blockW, blockH);
+                    ctx.restore();
+                }
+            } else {
+                var image = ctx.createImageData(width, height);
+                for (var p = 0; p < image.data.length; p += 4) {
+                    var noise = randomInt(-35, 35);
+                    image.data[p] = 35 + noise;
+                    image.data[p + 1] = 116 + noise + randomInt(-15, 18);
+                    image.data[p + 2] = 188 + noise + randomInt(-18, 20);
+                    image.data[p + 3] = 255;
+                }
+                ctx.putImageData(image, 0, 0);
+                drawSpeckles(ctx, width, height, 600, "#fff", 0.18);
+            }
+        }
+
+        function drawSliderSquare(ctx, x, y, size) {
+            ctx.save();
+            ctx.shadowColor = "rgba(0, 0, 0, 0.34)";
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            var gradient = ctx.createRadialGradient(x + size * 0.5, y + size * 0.48, size * 0.12, x + size * 0.5, y + size * 0.5, size * 0.78);
+            gradient.addColorStop(0, "#f1f1f1");
+            gradient.addColorStop(0.7, "#dddddd");
+            gradient.addColorStop(1, "#b9b9b9");
+            ctx.fillStyle = gradient;
+            ctx.fillRect(Math.round(x), Math.round(y), size, size);
+            ctx.restore();
+        }
+
+        function overlapBox(a, b, gap) {
+            return !(a.x + a.size + gap < b.x || b.x + b.size + gap < a.x || a.y + a.size + gap < b.y || b.y + b.size + gap < a.y);
+        }
+
+        function makeSliderBoxes(width, height) {
+            var small = { size: 109 };
+            var large = { size: 120 };
+            var boxes = [small, large].sort(function () { return Math.random() - 0.5; });
+            for (var attempt = 0; attempt < 120; attempt++) {
+                boxes[0].x = randomInt(80, width - boxes[0].size - 80);
+                boxes[0].y = randomInt(275, 420);
+                boxes[1].x = randomInt(80, width - boxes[1].size - 80);
+                boxes[1].y = randomInt(275, 420);
+                if (!overlapBox(boxes[0], boxes[1], 42)) break;
+            }
+            return { small: small, large: large };
+        }
+
+        function setSliderHandleLeft(left) {
+            var maxLeft = Math.max(0, sliderTrack.clientWidth - sliderHandle.offsetWidth);
+            sliderState.handleLeft = Math.max(0, Math.min(maxLeft, left));
+            sliderHandle.style.transform = "translateX(" + sliderState.handleLeft + "px)";
+        }
+
+        function resetSliderHandle() {
+            setSliderHandleLeft(0);
+        }
+
+        function isSliderAligned() {
+            var targetX = sliderState.targetRatioX * sliderTrack.clientWidth;
+            var handleCenterX = sliderState.handleLeft + sliderHandle.offsetWidth / 2;
+            var tolerance = Math.max(14, sliderTrack.clientWidth * 0.02);
+            return Math.abs(handleCenterX - targetX) <= tolerance;
+        }
+
+        function drawSliderCaptcha() {
+            var ctx = sliderCaptchaCanvas.getContext("2d");
+            var width = sliderCaptchaCanvas.width;
+            var height = sliderCaptchaCanvas.height;
+            drawSliderBackground(ctx, width, height);
+
+            var boxes = makeSliderBoxes(width, height);
+            drawSliderSquare(ctx, boxes.large.x, boxes.large.y, boxes.large.size);
+            drawSliderSquare(ctx, boxes.small.x, boxes.small.y, boxes.small.size);
+            sliderState.targetRatioX = (boxes.small.x + boxes.small.size / 2) / width;
+            captchaAnswer = "__slider__";
+            window.setTimeout(resetSliderHandle, 0);
+        }
+
+        function setCaptchaMode(mode) {
+            captchaMode = mode;
+            captchaMask.classList.toggle("math-mode", mode === "math");
+            captchaMask.classList.toggle("slider-mode", mode === "slider");
+        }
+
+        function showCaptcha() {
+            setCaptchaMode(randomInt(0, 1) === 0 ? "math" : "slider");
+            captchaInput.value = "";
+            if (captchaMode === "math") {
+                drawMathCaptcha();
+            } else {
+                drawSliderCaptcha();
+            }
+            captchaMask.classList.add("show");
+        }
+
+        function hideCaptcha() {
+            captchaMask.classList.remove("show");
+        }
+
+        document.getElementById("normalBookingEntry").addEventListener("click", showDetail);
+
+        Array.prototype.forEach.call(document.querySelectorAll(".day[data-date]"), function (day) {
+            day.addEventListener("click", function () {
+                Array.prototype.forEach.call(document.querySelectorAll(".day.selected"), function (old) {
+                    old.classList.remove("selected");
+                    old.classList.add("available");
+                });
+                day.classList.add("selected");
+                day.classList.remove("available");
+                selectedDate = day.getAttribute("data-date");
+                updateConfirm();
+            });
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll(".period[data-period]"), function (period) {
+            period.addEventListener("click", function () {
+                Array.prototype.forEach.call(document.querySelectorAll(".period.selected"), function (old) {
+                    old.classList.remove("selected");
+                });
+                period.classList.add("selected");
+                selectedPeriod = period.getAttribute("data-period");
+                updateConfirm();
+            });
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll(".visitor-card"), function (card) {
+            card.addEventListener("click", function () {
+                var id = card.getAttribute("data-visitor");
+                selectedVisitors[id] = !selectedVisitors[id];
+                card.classList.toggle("selected", selectedVisitors[id]);
+                updateConfirm();
+            });
+        });
+
+        confirmButton.addEventListener("click", function () {
+            if (!confirmButton.classList.contains("active")) {
+                showToast("请先选择日期、时段和观众");
+                return;
+            }
+            showCaptcha();
+        });
+
+        captchaClose.addEventListener("click", hideCaptcha);
+
+        function eventClientX(event) {
+            if (event.touches && event.touches.length) return event.touches[0].clientX;
+            if (event.changedTouches && event.changedTouches.length) return event.changedTouches[0].clientX;
+            return event.clientX;
+        }
+
+        function startSliderDrag(event) {
+            if (captchaMode !== "slider") return;
+            event.preventDefault();
+            sliderState.dragging = true;
+            var handleRect = sliderHandle.getBoundingClientRect();
+            sliderState.dragOffsetX = eventClientX(event) - handleRect.left;
+        }
+
+        function moveSliderDrag(event) {
+            if (!sliderState.dragging) return;
+            event.preventDefault();
+            var trackRect = sliderTrack.getBoundingClientRect();
+            setSliderHandleLeft(eventClientX(event) - trackRect.left - sliderState.dragOffsetX);
+        }
+
+        function stopSliderDrag(event) {
+            if (!sliderState.dragging) return;
+            event.preventDefault();
+            sliderState.dragging = false;
+        }
+
+        sliderHandle.addEventListener("touchstart", startSliderDrag, false);
+        sliderHandle.addEventListener("mousedown", startSliderDrag, false);
+        document.addEventListener("touchmove", moveSliderDrag, false);
+        document.addEventListener("mousemove", moveSliderDrag, false);
+        document.addEventListener("touchend", stopSliderDrag, false);
+        document.addEventListener("mouseup", stopSliderDrag, false);
+
+        captchaSubmit.addEventListener("click", function () {
+            if (captchaMode === "slider") {
+                if (isSliderAligned()) {
+                    showToast("模拟预约已提交");
+                    hideCaptcha();
+                    return;
+                }
+                showToast("验证码错误");
+                return;
+            }
+            if (captchaInput.value.replace(/\s/g, "") === captchaAnswer) {
+                showToast("模拟预约已提交");
+                hideCaptcha();
+                return;
+            }
+            showToast("验证码错误");
+        });
+
+        captchaInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                captchaSubmit.click();
+            }
+        });
+
+        var clock = document.getElementById("clock");
+        var now = new Date();
+        clock.textContent = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    })();
+</script>
+</body>
+</html>

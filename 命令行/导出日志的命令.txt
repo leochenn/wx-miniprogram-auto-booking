@@ -1,0 +1,7 @@
+adb pull /sdcard/OpenAutoJS_NanJingBooking/. C:\Users\Administrator\Desktop\wx-qp\OpenAutoJS_NanjingBooking
+
+adb shell rm -rf /sdcard/OpenAutoJS_NanJingBooking
+
+adb shell "find /sdcard/OpenAutoJS_NanJingBooking -type f ! -name '*.json' -exec rm -f {} +"
+
+adb push "C:\Users\Administrator\Desktop\wx-qp\project\." "/sdcard/脚本/"

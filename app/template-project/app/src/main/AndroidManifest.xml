@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.ch.sss"
+    android:versionCode="1"
+    android:versionName="1.0" >
+    
+    <supports-screens
+        android:anyDensity="true"
+        android:largeScreens="true"
+        android:normalScreens="true"
+        android:resizeable="true"
+        android:smallScreens="true" />
+
+    <!--访问网络连接,可能产生GPRS流量-->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!--获取网络信息状态,如当前的网络连接是否有效-->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--改变WiFi状态-->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- 获取当前WiFi接入的状态以及WLAN热点的信息 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- 读写手机状态和身份 -->
+<!--    <uses-permission android:name="android.permission.READ_PHONE_STATE" />-->
+<!--    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />-->
+    <!-- 允许在其他应用的上层显示 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <!--允许程序写入外部存储,如SD卡上写文件-->
+<!--    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />-->
+
+    <!-- Google Play IAB -->
+    <uses-permission android:name="com.android.vending.BILLING" />
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name">
+
+        <!--android:screenOrientation="portrait" -->
+        <!--android:screenOrientation="landscape"-->
+        <activity
+            android:name="com.mg.sdk.demo.MainActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:exported="true"
+            android:theme="@style/MockFullscreenTheme"
+            >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name="com.mg.sdk.demo.CaptchaAnswerReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.mg.sdk.demo.CAPTCHA_IME_SET_ANSWER" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name="com.mg.sdk.demo.CaptchaNumberInputMethodService"
+            android:exported="true"
+            android:label="@string/captcha_ime_name"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/captcha_number_ime" />
+        </service>
+
+    </application>
+
+</manifest>

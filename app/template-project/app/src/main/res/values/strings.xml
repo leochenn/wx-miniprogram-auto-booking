@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">MGSDK_Demo</string>
+    <string name="captcha_ime_name">Captcha Number IME</string>
+    <!--Facebook 应用编号-->
+    <string name="facebook_app_id"></string>
+    <!--Facebook 启用 Chrome 自定义选项卡所需的 Facebook 应用编号-->
+    <string name="fb_login_protocol_scheme">fb333333333</string>
+</resources>
