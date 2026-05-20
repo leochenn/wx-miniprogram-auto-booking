@@ -32,8 +32,8 @@ var CONFIG = {
         // 与正式脚本第二轮验证码输入法参数保持一致。
         inputMethod: {
             enabled: true, // true 使用自定义 IME；false 则跳过 IME，进入人工兜底
-            packageName: "com.leo.myapplication", // Mock App 的 applicationId；不要填源码包名 com.mg.sdk.demo
-            action: "com.mg.sdk.demo.CAPTCHA_IME_SET_ANSWER", // CaptchaAnswerReceiver 接收答案的广播 action
+            packageName: "", // 留空时使用当前 OpenAutoJS 包名；不要填 Mock App 包名
+            action: "org.openautojs.autojs.action.CAPTCHA_IME_SET_ANSWER", // OpenAutoJS 验证码输入法接收答案的广播 action
             extraAnswer: "answer", // 广播中携带验证码答案的 extra key
             focusWaitMs: 250, // 点击验证码输入框后等待焦点/输入连接建立；偶发不输入可调到 400-600
             afterBroadcastMs: 80, // 发送广播后给 receiver 一个极短处理窗口，一般无需调整
@@ -1044,14 +1044,16 @@ function sendCaptchaAnswerToInputMethod(answer) {
         return { ok: false, skipped: true, reason: "captcha_ime_disabled" };
     }
     try {
-        var intent = new android.content.Intent(String(cfg.action || "com.mg.sdk.demo.CAPTCHA_IME_SET_ANSWER"));
-        if (cfg.packageName) {
-            intent.setPackage(String(cfg.packageName));
+        var action = String(cfg.action || "org.openautojs.autojs.action.CAPTCHA_IME_SET_ANSWER");
+        var targetPackage = String(cfg.packageName || context.getPackageName());
+        var intent = new android.content.Intent(action);
+        if (targetPackage) {
+            intent.setPackage(targetPackage);
         }
         intent.putExtra(String(cfg.extraAnswer || "answer"), String(answer));
         context.sendBroadcast(intent);
         logx("Captcha IME answer broadcast sent answer=" + answer +
-            " package=" + (cfg.packageName || "") + " action=" + (cfg.action || ""));
+            " package=" + targetPackage + " action=" + action);
         if (cfg.afterBroadcastMs > 0) {
             sleep(cfg.afterBroadcastMs);
         }

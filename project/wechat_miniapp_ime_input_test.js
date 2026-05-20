@@ -20,8 +20,8 @@ var CONFIG = {
     commitWaitMs: 1500,
     inputMethod: {
         enabled: true,
-        packageName: "com.leo.myapplication",
-        action: "com.mg.sdk.demo.CAPTCHA_IME_SET_ANSWER",
+        packageName: "",
+        action: "org.openautojs.autojs.action.CAPTCHA_IME_SET_ANSWER",
         extraAnswer: "answer",
         afterBroadcastMs: 80
     }
@@ -218,14 +218,16 @@ function sendAnswerToInputMethod(answer) {
         return { ok: false, reason: "input_method_disabled" };
     }
     try {
-        var intent = new android.content.Intent(String(cfg.action));
-        if (cfg.packageName) {
-            intent.setPackage(String(cfg.packageName));
+        var action = String(cfg.action || "org.openautojs.autojs.action.CAPTCHA_IME_SET_ANSWER");
+        var targetPackage = String(cfg.packageName || context.getPackageName());
+        var intent = new android.content.Intent(action);
+        if (targetPackage) {
+            intent.setPackage(targetPackage);
         }
         intent.putExtra(String(cfg.extraAnswer || "answer"), String(answer));
         context.sendBroadcast(intent);
         logx("已发送输入法广播 answer=" + answer +
-            " package=" + (cfg.packageName || "") + " action=" + cfg.action);
+            " package=" + targetPackage + " action=" + action);
         if (cfg.afterBroadcastMs > 0) {
             sleep(cfg.afterBroadcastMs);
         }

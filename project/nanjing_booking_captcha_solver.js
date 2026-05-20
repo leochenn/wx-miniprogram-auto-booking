@@ -808,14 +808,16 @@ function createNanjingBookingCaptchaSolver(deps) {
             return { ok: false, skipped: true, reason: "captcha_ime_disabled" };
         }
         try {
-            var intent = new android.content.Intent(String(cfg.action || "com.mg.sdk.demo.CAPTCHA_IME_SET_ANSWER"));
-            if (cfg.packageName) {
-                intent.setPackage(String(cfg.packageName));
+            var action = String(cfg.action || "org.openautojs.autojs.action.CAPTCHA_IME_SET_ANSWER");
+            var targetPackage = String(cfg.packageName || context.getPackageName());
+            var intent = new android.content.Intent(action);
+            if (targetPackage) {
+                intent.setPackage(targetPackage);
             }
             intent.putExtra(String(cfg.extraAnswer || "answer"), String(answer));
             context.sendBroadcast(intent);
             logx("Captcha IME answer broadcast sent answer=" + answer +
-                " package=" + (cfg.packageName || "") + " action=" + (cfg.action || ""));
+                " package=" + targetPackage + " action=" + action);
             if (cfg.afterBroadcastMs > 0) {
                 sleep(cfg.afterBroadcastMs);
             }

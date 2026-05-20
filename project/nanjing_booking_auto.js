@@ -48,12 +48,12 @@ var CONFIG = {
         ],
         emptyOcrRetryWaitMs: 700,
         inputPoint: { x: 720, y: 1908 },
-        // 自定义数字输入法通道：抢票前需要启用并切换到 Mock App 内置的 Captcha Number IME。
+        // 自定义数字输入法通道：抢票前需要启用并切换到 OpenAutoJS 内置的验证码数字输入法。
         // 流程：点击验证码输入框 -> 等待 focusWaitMs -> 广播答案给 IME -> 等待 commitWaitMs -> 收起键盘 -> 点击确定。
         inputMethod: {
             enabled: true, // true 使用自定义 IME；false 则跳过 IME，进入人工兜底
-            packageName: "com.leo.myapplication", // Mock App 的 applicationId；不要填源码包名 com.mg.sdk.demo
-            action: "com.mg.sdk.demo.CAPTCHA_IME_SET_ANSWER", // CaptchaAnswerReceiver 接收答案的广播 action
+            packageName: "", // 留空时使用当前 OpenAutoJS 包名；不要填 Mock App 或微信包名
+            action: "org.openautojs.autojs.action.CAPTCHA_IME_SET_ANSWER", // OpenAutoJS 验证码输入法接收答案的广播 action
             extraAnswer: "answer", // 广播中携带验证码答案的 extra key
             focusWaitMs: 250, // 点击验证码输入框后等待焦点/输入连接建立；偶发不输入可调到 400-600
             afterBroadcastMs: 80, // 发送广播后给 receiver 一个极短处理窗口，一般无需调整
