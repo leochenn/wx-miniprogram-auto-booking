@@ -1,1 +1,2 @@
 adb shell "find /sdcard/OpenAutoJS_NanJingBooking -type f ! -name '*.json' -exec rm -f {} +"
+pause

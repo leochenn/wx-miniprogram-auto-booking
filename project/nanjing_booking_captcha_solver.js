@@ -577,23 +577,34 @@ function createNanjingBookingCaptchaSolver(deps) {
     }
 
     function recognizeCaptchaExpression(img, region) {
+        var rawOcrEnabled = CONFIG.captcha.rawOcrEnabled === true;
+        var ocrFirst = null;
+        var preprocessedFirst = null;
         if (CONFIG.captcha.preferOcr) {
-            var ocrFirst = recognizeCaptchaByOcr(img, region, "prefer_ocr region=" + (region.name || ""));
-            if (ocrFirst.ok) return ocrFirst;
-            if (CONFIG.captcha.usePreprocessedOcr) {
-                var preprocessedFirst = recognizeCaptchaByPreprocessedOcr(img, region, "prefer_ocr_failed region=" + (region.name || "") + " raw=" + ocrFirst.raw);
+            if (rawOcrEnabled) {
+                ocrFirst = recognizeCaptchaByOcr(img, region, "prefer_ocr region=" + (region.name || ""));
+                if (ocrFirst.ok) return ocrFirst;
+                if (CONFIG.captcha.usePreprocessedOcr) {
+                    preprocessedFirst = recognizeCaptchaByPreprocessedOcr(img, region, "prefer_ocr_failed region=" + (region.name || "") + " raw=" + ocrFirst.raw);
+                    if (preprocessedFirst.ok) return preprocessedFirst;
+                    logx("验证码预处理 OCR 失败，切换模板识别 reason=" + preprocessedFirst.reason);
+                }
+                logx("验证码 OCR 主路径失败，切换模板识别 reason=" + ocrFirst.reason);
+            } else if (CONFIG.captcha.usePreprocessedOcr) {
+                preprocessedFirst = recognizeCaptchaByPreprocessedOcr(img, region, "preprocessed_first region=" + (region.name || ""));
                 if (preprocessedFirst.ok) return preprocessedFirst;
                 logx("验证码预处理 OCR 失败，切换模板识别 reason=" + preprocessedFirst.reason);
+            } else {
+                logx("验证码原图 OCR 已关闭且预处理 OCR 未开启，切换模板识别 region=" + (region.name || ""));
             }
-            logx("验证码 OCR 主路径失败，切换模板识别 reason=" + ocrFirst.reason);
         }
 
         if (region.templateEnabled === false) {
             return {
                 ok: false,
                 reason: "template_disabled region=" + (region.name || "") +
-                    " raw=" + ((ocrFirst && ocrFirst.raw) || ""),
-                raw: (ocrFirst && ocrFirst.raw) || ""
+                    " raw=" + ((preprocessedFirst && preprocessedFirst.raw) || (ocrFirst && ocrFirst.raw) || ""),
+                raw: (preprocessedFirst && preprocessedFirst.raw) || (ocrFirst && ocrFirst.raw) || ""
             };
         }
 
@@ -606,7 +617,10 @@ function createNanjingBookingCaptchaSolver(deps) {
                 runtime.captchaStats.templateBuild = Date.now() - templateStart;
             }
             logx("验证码模板构建异常，尝试 OCR 兜底 err=" + e);
-            return recognizeCaptchaByOcr(img, region, "template_exception region=" + (region.name || "") + " err=" + e);
+            if (rawOcrEnabled) {
+                return recognizeCaptchaByOcr(img, region, "template_exception region=" + (region.name || "") + " err=" + e);
+            }
+            return { ok: false, reason: "template_exception region=" + (region.name || "") + " raw_ocr_disabled err=" + e, raw: "" };
         }
 
         var glyphStart = Date.now();
@@ -616,9 +630,12 @@ function createNanjingBookingCaptchaSolver(deps) {
         }
         logx("验证码候选字符数量=" + glyphs.length + " regionName=" + (region.name || "") + " region=" + JSON.stringify(region));
         if (glyphs.length < 3) {
-            var ocrByCount = recognizeCaptchaByOcr(img, region, "glyph_count=" + glyphs.length + " region=" + (region.name || ""));
-            if (ocrByCount.ok) return ocrByCount;
-            return { ok: false, reason: "glyph_count=" + glyphs.length + " ocr=" + ocrByCount.reason, raw: ocrByCount.raw || "" };
+            if (rawOcrEnabled) {
+                var ocrByCount = recognizeCaptchaByOcr(img, region, "glyph_count=" + glyphs.length + " region=" + (region.name || ""));
+                if (ocrByCount.ok) return ocrByCount;
+                return { ok: false, reason: "glyph_count=" + glyphs.length + " ocr=" + ocrByCount.reason, raw: ocrByCount.raw || "" };
+            }
+            return { ok: false, reason: "glyph_count=" + glyphs.length + " raw_ocr_disabled", raw: "" };
         }
 
         var chars = [];
@@ -638,15 +655,21 @@ function createNanjingBookingCaptchaSolver(deps) {
         var raw = chars.join("");
         var parsed = evaluateCaptchaExpression(raw);
         if (!parsed) {
-            var ocrByParse = recognizeCaptchaByOcr(img, region, "parse_failed region=" + (region.name || "") + " raw=" + raw);
-            if (ocrByParse.ok) return ocrByParse;
-            return { ok: false, reason: "parse_failed detail=" + detail.join(",") + " ocr=" + ocrByParse.reason, raw: raw };
+            if (rawOcrEnabled) {
+                var ocrByParse = recognizeCaptchaByOcr(img, region, "parse_failed region=" + (region.name || "") + " raw=" + raw);
+                if (ocrByParse.ok) return ocrByParse;
+                return { ok: false, reason: "parse_failed detail=" + detail.join(",") + " ocr=" + ocrByParse.reason, raw: raw };
+            }
+            return { ok: false, reason: "parse_failed detail=" + detail.join(",") + " raw_ocr_disabled", raw: raw };
         }
         for (var j = 0; j < parsed.expression.length; j++) {
             if (scores[j] < CONFIG.captcha.minGlyphScore) {
-                var ocrByScore = recognizeCaptchaByOcr(img, region, "low_score region=" + (region.name || "") + " raw=" + raw);
-                if (ocrByScore.ok) return ocrByScore;
-                return { ok: false, reason: "low_score detail=" + detail.join(",") + " ocr=" + ocrByScore.reason, raw: raw };
+                if (rawOcrEnabled) {
+                    var ocrByScore = recognizeCaptchaByOcr(img, region, "low_score region=" + (region.name || "") + " raw=" + raw);
+                    if (ocrByScore.ok) return ocrByScore;
+                    return { ok: false, reason: "low_score detail=" + detail.join(",") + " ocr=" + ocrByScore.reason, raw: raw };
+                }
+                return { ok: false, reason: "low_score detail=" + detail.join(",") + " raw_ocr_disabled", raw: raw };
             }
         }
         return {

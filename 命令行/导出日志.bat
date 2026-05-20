@@ -1,1 +1,2 @@
-adb pull /sdcard/OpenAutoJS_NanJingBooking/. C:\Users\Administrator\Desktop\wx-qp\OpenAutoJS_NanjingBooking
+adb pull /sdcard/OpenAutoJS_NanJingBooking/. E:\leo-github\wx-miniprogram-auto-booking\log
+pause
