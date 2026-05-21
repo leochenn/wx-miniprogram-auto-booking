@@ -93,6 +93,44 @@ var CONFIG = {
     }
 };
 
+function bookingConfigScriptDir() {
+    try {
+        var source = engines.myEngine().source;
+        var path = String(source || "");
+        if (path.indexOf("file://") === 0) path = path.substring(7);
+        var sep = path.lastIndexOf("/");
+        if (sep >= 0) return path.substring(0, sep);
+    } catch (e) {}
+    try {
+        return files.cwd();
+    } catch (ignored) {}
+    return "";
+}
+
+function bookingConfigPath() {
+    var dir = bookingConfigScriptDir();
+    if (!dir) return "nanjing_booking_config.json";
+    return dir + (dir.charAt(dir.length - 1) === "/" ? "" : "/") + "nanjing_booking_config.json";
+}
+
+function applyExternalBookingConfig() {
+    try {
+        var path = bookingConfigPath();
+        if (!files.exists(path)) return;
+        var external = JSON.parse(files.read(path));
+        if (!external) return;
+        if (external.visitDate !== undefined) CONFIG.visitDate = String(external.visitDate);
+        if (external.period !== undefined) CONFIG.period = String(external.period);
+        if (external.visitorCount !== undefined) {
+            var count = parseInt(external.visitorCount, 10);
+            if (!isNaN(count)) CONFIG.visitorCount = count;
+        }
+        if (external.startTime !== undefined) CONFIG.startTime = String(external.startTime);
+    } catch (ignored) {}
+}
+
+applyExternalBookingConfig();
+
 var STAGE = "INIT";
 var runtime = {
     cache: {},

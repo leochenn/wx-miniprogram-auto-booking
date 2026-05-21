@@ -710,6 +710,8 @@ function evaluateCaptchaExpression(text) {
         if (inferred) {
             inferred.normalized = normalized;
             inferred.rules = normalizedResult.rules.concat([inferred.rule]);
+            attachInferredCaptchaContext(inferred, normalized);
+            appendCaptchaContextRules(inferred.rules, inferred);
             inferred.ruleText = inferred.rules.join("|");
             return inferred;
         }
@@ -726,25 +728,168 @@ function evaluateCaptchaExpression(text) {
     else return null;
     if (op === "+" && answer > 99) {
         var divideInferred = inferPlusShouldBeDivide(a, b, normalized, normalizedResult.rules);
-        if (divideInferred) return divideInferred;
+        if (divideInferred) {
+            attachMatchedCaptchaContext(divideInferred, normalized, m);
+            appendCaptchaContextRules(divideInferred.rules, divideInferred);
+            divideInferred.ruleText = divideInferred.rules.join("|");
+            return divideInferred;
+        }
     }
     if (Math.floor(answer) !== answer || answer < 0 || answer > 99) return null;
     var rules = normalizedResult.rules.length ? normalizedResult.rules.slice() : ["direct_parse"];
+    var prefix = normalized.substring(0, m.index);
     var tail = normalized.substring(m.index + m[0].length);
-    var tailNoiseIgnored = false;
-    if (!/[=?]/.test(normalized) && /^[+\-\u00d7\u00f7]\d{1,2}$/.test(tail)) {
-        rules.push("ignore_tail_operator_digits_as_marker_noise");
-        tailNoiseIgnored = true;
-    }
-    return {
+    var prefixCheck = analyzeCaptchaExpressionPrefix(prefix);
+    var tailCheck = analyzeCaptchaExpressionTail(tail);
+    var parsed = {
         expression: m[1] + op + m[3],
         answer: String(answer),
         normalized: normalized,
         rules: rules,
-        ruleText: rules.join("|"),
-        tailNoiseIgnored: tailNoiseIgnored,
-        ignoredTail: tail
+        prefix: prefix,
+        prefixCheck: prefixCheck,
+        tail: tail,
+        tailCheck: tailCheck,
+        prefixNoiseIgnored: prefixCheck.prefixNoiseIgnored === true,
+        tailNoiseIgnored: tailCheck.tailNoiseIgnored === true,
+        markerTailNoiseIgnored: tailCheck.markerTailNoiseIgnored === true,
+        ignoredPrefix: prefixCheck.ignoredPrefix || "",
+        ignoredTail: tailCheck.ignoredTail || ""
     };
+    appendCaptchaContextRules(rules, parsed);
+    parsed.ruleText = rules.join("|");
+    return parsed;
+}
+
+function appendCaptchaContextRules(rules, parsed) {
+    if (!parsed) return;
+    if (parsed.prefixCheck && parsed.prefixCheck.rule) {
+        appendCaptchaRule(rules, parsed.prefixCheck.rule);
+    }
+    if (parsed.tailCheck && parsed.tailCheck.rule) {
+        appendCaptchaRule(rules, parsed.tailCheck.rule);
+    }
+}
+
+function appendCaptchaRule(rules, rule) {
+    if (!rule) return;
+    for (var i = 0; i < rules.length; i++) {
+        if (rules[i] === rule) return;
+    }
+    rules.push(rule);
+}
+
+function attachMatchedCaptchaContext(parsed, normalized, match) {
+    var prefix = normalized.substring(0, match.index);
+    var tail = normalized.substring(match.index + match[0].length);
+    parsed.prefix = prefix;
+    parsed.prefixCheck = analyzeCaptchaExpressionPrefix(prefix);
+    parsed.tail = tail;
+    parsed.tailCheck = analyzeCaptchaExpressionTail(tail);
+    parsed.prefixNoiseIgnored = parsed.prefixCheck.prefixNoiseIgnored === true;
+    parsed.tailNoiseIgnored = parsed.tailCheck.tailNoiseIgnored === true;
+    parsed.markerTailNoiseIgnored = parsed.tailCheck.markerTailNoiseIgnored === true;
+    parsed.ignoredPrefix = parsed.prefixCheck.ignoredPrefix || "";
+    parsed.ignoredTail = parsed.tailCheck.ignoredTail || "";
+}
+
+function analyzeCaptchaExpressionPrefix(prefix) {
+    var text = String(prefix || "");
+    if (text.length === 0) {
+        return {};
+    }
+    if (/[0-9]/.test(text)) {
+        return { suspicious: "ocr_prefix_has_digit", ignoredPrefix: text };
+    }
+    if (/[A-Za-z\u4e00-\u9fff]/.test(text)) {
+        return { suspicious: "ocr_prefix_has_text", ignoredPrefix: text };
+    }
+    if (text.length > 4) {
+        return { suspicious: "ocr_prefix_noise_too_long", ignoredPrefix: text };
+    }
+    if (/^[=?+\-\u00d7\u00f7:\/\.\u3002\uff0e,\uff0c]+$/.test(text)) {
+        return {
+            rule: "ignore_prefix_operator_marker_noise",
+            prefixNoiseIgnored: true,
+            ignoredPrefix: text
+        };
+    }
+    return { suspicious: "ocr_prefix_noise", ignoredPrefix: text };
+}
+
+function attachInferredCaptchaContext(parsed, normalized) {
+    var markerIndex = String(normalized).search(/[=?]/);
+    var core = markerIndex >= 0 ? normalized.substring(0, markerIndex) : normalized;
+    var tail = markerIndex >= 0 ? normalized.substring(markerIndex) : "";
+    parsed.inferredCore = core;
+    parsed.prefix = "";
+    parsed.prefixCheck = {};
+    parsed.tail = tail;
+    parsed.tailCheck = analyzeCaptchaExpressionTail(tail);
+    parsed.prefixNoiseIgnored = false;
+    parsed.tailNoiseIgnored = parsed.tailCheck.tailNoiseIgnored === true;
+    parsed.markerTailNoiseIgnored = parsed.tailCheck.markerTailNoiseIgnored === true;
+    parsed.ignoredPrefix = "";
+    parsed.ignoredTail = parsed.tailCheck.ignoredTail || "";
+}
+
+function analyzeCaptchaExpressionTail(tail) {
+    var text = String(tail || "");
+    if (text.length === 0) {
+        return { hasMarker: false, suspicious: "ocr_missing_tail_marker" };
+    }
+
+    var markerMatch = text.match(/^[=?]+/);
+    if (markerMatch) {
+        var marker = markerMatch[0];
+        var afterMarker = text.substring(marker.length);
+        if (afterMarker.length === 0) {
+            return { hasMarker: true, marker: marker };
+        }
+        if (hasCaptchaExpressionCore(afterMarker)) {
+            return {
+                hasMarker: true,
+                marker: marker,
+                afterMarker: afterMarker,
+                suspicious: "ocr_tail_contains_expression_after_marker"
+            };
+        }
+        if (afterMarker.length > 4) {
+            return {
+                hasMarker: true,
+                marker: marker,
+                afterMarker: afterMarker,
+                suspicious: "ocr_tail_noise_too_long_after_marker"
+            };
+        }
+        return {
+            hasMarker: true,
+            marker: marker,
+            afterMarker: afterMarker,
+            rule: "ignore_tail_noise_after_marker",
+            markerTailNoiseIgnored: true,
+            ignoredTail: afterMarker
+        };
+    }
+
+    if (/^[+\-\u00d7\u00f7]\d{1,2}$/.test(text)) {
+        return {
+            hasMarker: false,
+            rule: "ignore_tail_operator_digits_as_marker_noise",
+            tailNoiseIgnored: true,
+            ignoredTail: text
+        };
+    }
+
+    return {
+        hasMarker: false,
+        suspicious: "ocr_untrusted_tail_before_marker",
+        ignoredTail: text
+    };
+}
+
+function hasCaptchaExpressionCore(text) {
+    return /(\d{1,2})([+\-\u00d7\u00f7])(\d{1,2})/.test(String(text || ""));
 }
 
 function inferPlusShouldBeDivide(a, b, normalized, baseRules) {
@@ -764,15 +909,16 @@ function inferPlusShouldBeDivide(a, b, normalized, baseRules) {
 function getSuspiciousCaptchaOcrReason(raw, parsed) {
     if (!parsed) return "";
     var normalized = parsed.normalized || normalizeCaptchaOcrText(raw);
-    if (/[A-Za-z]/.test(normalized)) {
-        return "ocr_has_letter normalized=" + normalized;
+    var prefixCheck = parsed.prefixCheck || analyzeCaptchaExpressionPrefix(parsed.prefix || "");
+    if (prefixCheck.suspicious) {
+        return prefixCheck.suspicious + " prefix=" + (parsed.prefix || "") + " normalized=" + normalized;
     }
-    if (!/[=?]/.test(normalized) && !parsed.tailNoiseIgnored) {
-        return "ocr_missing_tail_marker normalized=" + normalized;
+    if (parsed.inferredCore !== undefined && /[^0-9]/.test(parsed.inferredCore)) {
+        return "ocr_inferred_core_residue core=" + parsed.inferredCore + " normalized=" + normalized;
     }
-    var residue = normalized.replace(/[0-9+\-\u00d7\u00f7=?:\uff1a\/]/g, "");
-    if (residue.length > 0) {
-        return "ocr_has_residue residue=" + residue + " normalized=" + normalized;
+    var tailCheck = parsed.tailCheck || analyzeCaptchaExpressionTail(parsed.tail || "");
+    if (tailCheck.suspicious) {
+        return tailCheck.suspicious + " tail=" + (parsed.tail || "") + " normalized=" + normalized;
     }
     return "";
 }
@@ -789,14 +935,24 @@ function normalizeCaptchaOcrTextWithRules(text) {
         rules.push("strip_space");
         value = next;
     }
-    next = value.replace(/[xX*]/g, "\u00d7");
+    next = value.replace(/[xX*\uff0a]/g, "\u00d7");
     if (next !== value) {
         rules.push("operator_alias_to_multiply");
         value = next;
     }
-    next = value.replace(/[\/]/g, "\u00f7");
+    next = value.replace(/[\uff0b]/g, "+");
+    if (next !== value) {
+        rules.push("operator_alias_to_plus");
+        value = next;
+    }
+    next = value.replace(/[\/\uff0f]/g, "\u00f7");
     if (next !== value) {
         rules.push("operator_alias_to_divide");
+        value = next;
+    }
+    next = value.replace(/\uff1d/g, "=").replace(/\uff1f/g, "?");
+    if (next !== value) {
+        rules.push("fullwidth_marker_to_ascii");
         value = next;
     }
     next = value.replace(/(\d{1,2})[:\uff1a](\d{1,2})/g, "$1\u00f7$2");
@@ -809,6 +965,11 @@ function normalizeCaptchaOcrTextWithRules(text) {
         rules.push("dash_alias_to_minus");
         value = next;
     }
+    next = value.replace(/([=?])[\.\u3002\uff0e,\uff0c]+$/g, "$1");
+    if (next !== value) {
+        rules.push("strip_tail_punctuation_after_marker");
+        value = next;
+    }
     return {
         text: value,
         rules: rules
@@ -816,7 +977,7 @@ function normalizeCaptchaOcrTextWithRules(text) {
 }
 
 function hasExplicitOperatorHint(text) {
-    return /[+\-\u00d7\u00f7:：\/xX*]/.test(String(text));
+    return /[+\-\u00d7\u00f7:\uff1a\/xX*]/.test(String(text));
 }
 
 function inferOcrMissingMultiply(text) {
@@ -887,11 +1048,13 @@ function recognizeCaptchaExpression(img, region) {
         if (runtime.captchaStats) {
             runtime.captchaStats.templateBuild = Date.now() - templateStart;
         }
-        logx("验证码模板构建异常，尝试 OCR 兜底 err=" + e);
         if (rawOcrEnabled) {
+            logx("验证码模板构建异常，尝试 OCR 兜底 err=" + e);
             return recognizeCaptchaByOcr(img, region, "template_exception=" + e);
         }
-        return { ok: false, reason: "template_exception raw_ocr_disabled err=" + e, raw: "" };
+        var priorRaw = (preprocessedFirst && preprocessedFirst.raw) || (ocrFirst && ocrFirst.raw) || "";
+        logx("验证码模板构建异常，原图 OCR 已关闭，保留前序 OCR 结果 err=" + e + " raw=" + priorRaw);
+        return { ok: false, reason: "template_exception raw_ocr_disabled err=" + e, raw: priorRaw };
     }
 
     var glyphStart = Date.now();
